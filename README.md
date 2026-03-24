@@ -1,88 +1,69 @@
 # PNAD Contínua Downloader - Projeto Estatística 2026.2 (IFPE Campus Paulista)
 
-Este projeto automatiza o download e a extração dos microdados da **Pesquisa Nacional por Amostra de Domicílios (PNAD) Contínua** do IBGE.
+Este projeto automatiza o download, a extração e a preparação de microdados da **Pesquisa Nacional por Amostra de Domicílios (PNAD) Contínua** do IBGE para bancos de dados SQL.
 
 O script `pnad_downloader.py` realiza as seguintes etapas:
 1. Recebe links de arquivos `.zip` do servidor FTP do IBGE.
-2. Baixa os arquivos para a pasta local `./temp`.
-3. Extrai o conteúdo (arquivos de dados `.txt`).
-4. Remove os arquivos compactados (`.zip`) após a extração.
+2. Baixa e extrai os microdados para a pasta local `./temp`.
+3. Gera automaticamente o esquema do banco de dados (`sql/schema.sql`).
+4. Converte os microdados brutos em comandos SQL de inserção em massa (`sql/values.sql`).
 
 ---
 
-## 🛠️ Configuração Inicial
+## 🛠️ Funcionalidades Implementadas
 
-### 1. Ambiente Virtual (Recomendado)
+### 1. Processamento de Dados Inteligente
+- **Mapeamento de Campos:** Lê arquivos de dicionário (inputs) para definir tipos e tamanhos das colunas SQL.
+- **Tratamento de NULL:** Identifica campos vazios nos microdados e os converte corretamente para `NULL` no SQL.
 
-**No Windows (PowerShell):**
-```powershell
-python -m venv .venv
-.\.venv\Scripts\Activate.ps1
-```
+### 2. Otimização de Performance para Grandes Volumes
+- **Transações SQL:** Utiliza `BEGIN;` e `COMMIT;` para acelerar a inserção de centenas de milhares de registros.
+- **Inserção em Lote (Batching):** Agrupa registros em blocos de 1000 valores por comando `INSERT`, reduzindo o overhead do banco de dados.
+- **Feedback de Progresso:** Monitora e exibe o progresso do processamento em tempo real no console.
 
-**No Linux/macOS (Bash/Zsh):**
-```bash
-python3 -m venv .venv
-source .venv/bin/activate
-```
-
-### 2. Dependências
-Este script utiliza apenas a biblioteca padrão do Python. O arquivo `requirements.txt` está atualmente vazio, mas você pode garantir que o ambiente está atualizado com:
-```bash
-pip install -r requirements.txt
-```
+### 3. Interface de Linha de Comando (CLI)
+Suporta execução modular através de flags:
+- `--download-only`: Realiza apenas o download e extração dos arquivos.
+- `--sql-only`: Pula o download e foca apenas na geração dos scripts SQL (útil se você já tem os arquivos no `./temp`).
 
 ---
 
 ## 🚀 Como Rodar
 
-Existem duas formas de executar o downloader:
-
-### Modo 1: Manual (Interativo)
-O script solicitará que você cole os links um por um.
+### Modo Completo (Padrão)
+Executa todas as etapas: download, extração e geração de SQL.
 ```bash
-# Windows
 python .\pnad_downloader.py
-
-# Linux/macOS
-python3 pnad_downloader.py
 ```
 
-### Modo 2: Usando arquivos de entrada (Batch)
-Você pode usar os arquivos `inputs/input_01.txt` ou `inputs/input_12.txt` para baixar vários arquivos automaticamente.
-
-**No Windows (PowerShell):**
-```powershell
-Get-Content inputs/input_12.txt | python .\pnad_downloader.py
-```
-
-**No Linux/macOS (Bash/Zsh):**
+### Modo Especializado
 ```bash
-cat inputs/input_12.txt | python3 pnad_downloader.py
+# Apenas baixar e extrair
+python .\pnad_downloader.py --download-only
+
+# Apenas gerar os scripts SQL
+python .\pnad_downloader.py --sql-only
 ```
 
 ---
 
 ## 📁 Estrutura do Projeto
 
-- `pnad_downloader.py`: Script principal em Python.
-- `inputs/input_01.txt`: Exemplo de entrada com 1 link de microdados.
-- `inputs/input_12.txt`: Exemplo de entrada com 12 links (ano de 2023 a 2025).
-- `temp/`: Pasta onde os arquivos baixados e extraídos serão armazenados (criada automaticamente).
-- `requirements.txt`: Lista de dependências do projeto.
-- `.gitignore`: Configuração para ignorar arquivos temporários e ambiente virtual no Git.
-
----
-**Nota:** Os links utilizados devem apontar para o servidor oficial do IBGE: `https://ftp.ibge.gov.br/Trabalho_e_Rendimento/Pesquisa_Nacional_por_Amostra_de_Domicilios_continua/Trimestral/Microdados/`
+- `pnad_downloader.py`: Script principal.
+- `inputs/`: Contém os dicionários de dados da PNAD.
+- `temp/`: Armazena arquivos `.txt` brutos (extraídos do IBGE).
+- `sql/`: 
+    - `schema.sql`: Estrutura da tabela `pnad`.
+    - `values.sql`: Dados convertidos prontos para serem importados.
 
 ---
 
 ## 📝 TODO / Próximos Passos (Aprendizado)
 
-- [ ] **Converter para Argumentos de Linha de Comando:** Substituir o uso de `input()` pelo módulo `argparse` ou `sys.argv` para facilitar a automação.
-- [ ] **Documentar Funções:** Adicionar *Docstrings* (comentários padronizados) em todas as funções explicando parâmetros e retornos.
-- [ ] **Tratamento de Erros:** Implementar blocos `try...except` para lidar com falhas de conexão, links inválidos ou falta de espaço em disco.
+- [x] **Argumentos de Linha de Comando:** Implementado via `sys.argv`.
+- [ ] **Integração Direta com SQLite:** Inserir os dados diretamente em um arquivo `.db` usando a biblioteca `sqlite3` do Python, sem precisar de arquivos `.sql` intermediários.
+- [ ] **Tratamento de Exceções Robusto:** Adicionar blocos `try...except` para conexões de rede instáveis.
+- [ ] **Refatoração para Performance:** Otimizar loops de strings constantes para reduzir uso de CPU.
 
 ---
-
-> **Nota:** Este arquivo `README.md` foi estruturado e gerado com o auxílio de Inteligência Artificial (Gemini CLI), enquanto o código-fonte original do projeto foi desenvolvido integralmente pelo autor como parte de seus estudos.
+**Nota:** Desenvolvido como ferramenta educacional para manipulação de grandes volumes de dados estatísticos.

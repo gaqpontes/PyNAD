@@ -1,0 +1,220 @@
+@0001 Ano   $4.   /* Ano de refer�ncia */
+@0005 Trimestre   $1.   /* Trimestre de refer�ncia */
+@0006 UF   $2.   /* Unidade da Federa��o */
+@0008 Capital   $2.   /* Munic�pio da Capital */
+@0010 RM_RIDE   $2.   /* Reg. Metr. e Reg. Adm. Int. Des. */
+@0012 UPA   $9.   /* Unidade Prim�ria de Amostragem */
+@0021 Estrato   $7.   /* Estrato */
+@0028 V1008   $2.   /* N�mero de sele��o do domic�lio */
+@0030 V1014   $2.   /* Painel */
+@0032 V1016   $1.   /* N�mero da entrevista no domic�lio */
+@0033 V1022   $1.   /* Tipo de situa��o da regi�o */
+@0034 V1023   $1.   /* Tipo de �rea */
+@0035 V1027   15.   /* Peso SEM calibra��o */
+@0050 V1028   15.   /* Peso COM calibra��o */
+@0065 V1029   9.   /* Proje��o da popula��o por n�veis geogr�ficos */
+@0074 V1033   9.   /* Proje��o da popula��o por sexo e idade */
+@0083 posest   $3.   /* Dom�nios de proje��o geogr�ficos */
+@0086 posest_sxi   $3.   /* Dom�nios de proje��o por sexo e idade */
+@0089 V2001   2.   /* N�mero de pessoas no domic�lio */
+@0091 V2003   $2.   /* N�mero de ordem */
+@0093 V2005   $2.   /* Condi��o no domic�lio */
+@0095 V2007   $1.   /* Sexo */
+@0096 V2008   $2.   /* Dia de nascimento */
+@0098 V20081   $2.   /* M�s de nascimento */
+@0100 V20082   $4.   /* Ano de nascimento */
+@0104 V2009   3.   /* Idade na data de refer�ncia */
+@0107 V2010   $1.   /* Cor ou ra�a */
+@0108 V3001   $1.   /* Sabe ler e escrever */
+@0109 V3002   $1.   /* Frequenta escola */
+@0110 V3002A   $1.   /* A escola que ... frequenta � de */
+@0111 V3003   $2.   /* Qual � o curso que frequenta */
+@0113 V3003A   $2.   /* Qual � o curso que frequenta */
+@0115 V3004   $1.   /* Dura��o deste curso que requenta */
+@0116 V3005   $1.   /* Curso que frequenta � seriado */
+@0117 V3005A   $1.   /* Curso que freq � organizado em: */
+@0118 V3006   $2.   /* Qual � o ano/s�rie que frequenta */
+@0120 V3006A   $1.   /* Qual � a etapa que frequenta */
+@0121 V3007   $1.   /* Concluiu outro curso de gradua��o */
+@0122 V3008   $1.   /* Anteriormente frequentou escola */
+@0123 V3009   $2.   /* Curso mais elevado que frequentou */
+@0125 V3009A   $2.   /* Curso mais elevado que frequentou */
+@0127 V3010   $1.   /* Dura��o do curso que frequentou */
+@0128 V3011   $1.   /* Curso quefrequentou era seriado */
+@0129 V3011A   $1.   /* Curso que freq � organizado em: */
+@0130 V3012   $1.   /* Aprovado na prim. s�rie do curso */
+@0131 V3013   $2.   /* �ltimo ano/s�rie que concluiu */
+@0133 V3013A   $1.   /* Qual � a etapa que frequentou */
+@0134 V3013B   $1.   /* Cursou os anos iniciais deste curso */
+@0135 V3014   $1.   /* Concluiu o curso que frequentou */
+@0136 V4001   $1.   /* Trabalhou 1 hr em ativ. remunerd. */
+@0137 V4002   $1.   /* Trabalhou 1 hr em produtos etc... */
+@0138 V4003   $1.   /* Fez algum bico pelo menos de 1 hr */
+@0139 V4004   $1.   /* Ajudou sem receber no domic. 1 hr */
+@0140 V4005   $1.   /* Afastado trabalho remunerado */
+@0141 V4006   $1.   /* Motivo de estar afastado */
+@0142 V4006A   $1.   /* Motivo de estar afastado */
+@0143 V4007   $1.   /* Durante afastameno recebia pagam. */
+@0144 V4008   $1.   /* Quanto tempo que estava afastado */
+@0145 V40081   $2.   /* Tempo de afastamenento at� 1 ano */
+@0147 V40082   $2.   /* Tempo de afastamen. de 1 a 2 anos */
+@0149 V40083   $2.   /* Tempo de afastamen. mais d 2 anos */
+@0151 V4009   $1.   /* Quantos trabalhos tinhana semana */
+@0152 V4010   $4.   /* Ocupa��o no trab. principal */
+@0156 V4012   $1.   /* Posi��o na ocupa��o */
+@0157 V40121   $1.   /* Tipo trabalhador n�o remunerado */
+@0158 V4013   $5.   /* Atividade no trab. principal */
+@0163 V40132   $1.   /* Se��o da atividade */
+@0164 V40132A   $1.   /* Se��o da atividade */
+@0165 V4014   $1.   /* Esse trabalho era na �rea */
+@0166 V4015   $1.   /* Teve ajuda de pelo menos um trabalhador n�o remunerado */
+@0167 V40151   $1.   /* Qnts trabalhadores n�o remunerados */
+@0168 V401511   $1.   /* 1 a 5 trabalhadores n�o remunerados */
+@0169 V401512   $2.   /* 6 a 10 trabalhadores n�o remunerados */
+@0171 V4016   $1.   /* Qnts empregados trabalhavam nesse neg�cio/empresa*/
+@0172 V40161   $1.   /* 1 a 5 empregados */
+@0173 V40162   $2.   /* 6 a 10 empregados */
+@0175 V40163   $2.   /* 11 a 50 empregados */
+@0177 V4017   $1.   /* Tinha pelo menos um s�cio que trab. nesse neg�cio/empresa*/
+@0178 V40171   $1.   /* Quantos s�cios */
+@0179 V401711   $1.   /* 1 a 5 s�cios */
+@0180 V4018   $1.   /* Qnts pessoas trabalhavam nesse neg�cio/empresa */
+@0181 V40181   $1.   /* 1 a 5pessoas */
+@0182 V40182   $2.   /* 6 a 10pessoas */
+@0184 V40183   $2.   /* 11 a 50pessoas */
+@0186 V4019   $1.   /* Neg�cio/empresa registrado no CNPJ*/
+@0187 V4020   $1.   /* Em que tipo de local funcionava esse neg�cio/empresa*/
+@0188 V4021   $1.   /* Exercia o trabalho em estabelecimento desse neg�cio/empresa*/ 
+@0189 V4022   $1.   /* Onde exercia normalmente esse trabalho*/
+@0190 V4024   $1.   /* Serv. dom�st. em mais de 1 domic. */
+@0191 V4025   $1.   /* Contratado como empreg. tempor�rio*/
+@0192 V4026   $1.   /* Era contratado somente por pessoa respons�vel pelo neg�cio */
+@0193 V4027   $1.   /* Era contratado somente por intermedi�rio */
+@0194 V4028   $1.   /* Servidor p�blico estatut�rio */
+@0195 V4029   $1.   /* Carteira de trabalho assinada */
+@0196 V4032   $1.   /* Contribuinte de instit. d previd. */
+@0197 V4033   $1.   /* Rendimento habitual var. auxil. */
+@0198 V40331   $1.   /* Rendimento habitual em dinheiro */
+@0199 V403311   $1.   /* Faixa do valor do rendimento hab. */
+@0200 V403312   8.   /* Valor do rend. hab. em dinheiro */
+@0208 V40332   $1.   /* Rendimento habitual em produtos */
+@0209 V403321   $1.   /* Faixa do valor do rendimento hab. */
+@0210 V403322   8.   /* Valor do rend. hab. em produtos */
+@0218 V40333   $1.   /* Rendimento habitual em benef�cios */
+@0219 V403331   $1.   /* Tipo rend. habitual em benef�cios */
+@0220 V4034   $1.   /* Rendimento efetivo var. auxil. */
+@0221 V40341   $1.   /* Rendimento efetivo em dinheiro */
+@0222 V403411   $1.   /* Faixa do valor do rendimento efe. */
+@0223 V403412   8.   /* Valor do rend. efe. em dinheiro */
+@0231 V40342   $1.   /* Rendimento efetivo em produtos */
+@0232 V403421   $1.   /* Faixa do valor do rendimento efe. */
+@0233 V403422   8.   /* Valor do rend. efe. em produtos */
+@0241 V4039   3.   /* Hrs habituais no trab. princ. */
+@0244 V4039C   3.   /* Hrs efetivas no trab. princ. */
+@0247 V4040   $1.   /* Tempo que estava nesse trabalho */
+@0248 V40401   2.   /* De 1 m�s a menos de 1 ano */
+@0250 V40402   2.   /* De 1 ano a menos de 2 anos */
+@0252 V40403   2.   /* De 2 anos ou mais tempo */
+@0254 V4041   $4.   /* Ocupa��o no trab. secund�rio */
+@0258 V4043   $1.   /* Posi��o na ocupa��o */
+@0259 V40431   $1.   /* Tipo trabalhador n�o remunerado */
+@0260 V4044   $5.   /* Atividade no trab. secund�rio */
+@0265 V4045   $1.   /* Esse trabalho era na �rea */
+@0266 V4046   $1.   /* Neg�cio/empresa registrado no CNPJ*/
+@0267 V4047   $1.   /* Servidor p�blico estatut�rio */
+@0268 V4048   $1.   /* Carteira de trabalho assinada */
+@0269 V4049   $1.   /* Contribuinte de instit. d previd. */
+@0270 V4050   $1.   /* Rendimento habitual var. auxil. */
+@0271 V40501   $1.   /* Rendimento habitual em dinheiro */
+@0272 V405011   $1.   /* Faixa do valor do rendimento hab. */
+@0273 V405012   8.   /* Valor do rend. hab. em dinheiro */
+@0281 V40502   $1.   /* Rendimento habitual em produtos */
+@0282 V405021   $1.   /* Faixa do valor do rendimento hab. */
+@0283 V405022   8.   /* Valor do rend. hab. em produtos */
+@0291 V40503   $1.   /* Rendimento habitual em benef�cios */
+@0292 V405031   $1.   /* Tipo rend. habitual em benef�cios */
+@0293 V4051   $1.   /* Rendimento efetivo var. auxil. */
+@0294 V40511   $1.   /* Rendimento efetivo em dinheiro */
+@0295 V405111   $1.   /* Faixa do valor do rendimento efe. */
+@0296 V405112   8.   /* Valor do rend. efe. em dinheiro */
+@0304 V40512   $1.   /* Rendimento efetivo em produtos */
+@0305 V405121   $1.   /* Faixa do valor do rendimento efe. */
+@0306 V405122   8.   /* Valor do rend. efe. em produtos */
+@0314 V4056   3.   /* Hrs habituais no trab. secun. */
+@0317 V4056C   3.   /* Hrs efetivas no trab. secun. */
+@0320 V4057   $1.   /* Contribuinte de instit. d previd. */
+@0321 V4058   $1.   /* Rendimento habitual var. auxil. */
+@0322 V40581   $1.   /* Rendimento habitual em dinheiro */
+@0323 V405811   $1.   /* Faixa do valor do rendimento hab. */
+@0324 V405812   8.   /* Valor do rend. hab. em dinheiro */
+@0332 V40582   $1.   /* Rendimento habitual em produtos */
+@0333 V405821   $1.   /* Faixa do valor do rendimento hab. */
+@0334 V405822   8.   /* Valor do rend. hab. em produtos */
+@0342 V40583   $1.   /* Rendimento habitual em benef�cios */
+@0343 V405831   $1.   /* Tipo rend. habitual em benef�cios */
+@0344 V40584   $1.   /* N�o remunerado */
+@0345 V4059   $1.   /* Rendimento efetivo var. auxil. */
+@0346 V40591   $1.   /* Rendimento efetivo em dinheiro */
+@0347 V405911   $1.   /* Faixa do valor do rendimento efe. */
+@0348 V405912   8.   /* Valor do rend. efe. em dinheiro */
+@0356 V40592   $1.   /* Rendimento efetivo em produtos */
+@0357 V405921   $1.   /* Faixa do valor do rendimento efe. */
+@0358 V405922   8.   /* Valor do rend. efe. em produtos */
+@0366 V4062   3.   /* Hrs habituais no(s) outro(s) trab.*/
+@0369 V4062C   3.   /* Hrs efetivas no(s) outro(s) trab .*/
+@0372 V4063   $1.   /* Gostaria trabalhar + hrs efetivas */
+@0373 V4063A   $1.   /* Gostaria trabalhar + hrs habituais*/
+@0374 V4064   $1.   /* Dispon. trabalhar + hrs efetivas */
+@0375 V4064A   $1.   /* Dispon. trabalhar + hrs habituais */
+@0376 V4071   $1.   /* Provid�ncia p/ conseg. trab.(30d) */
+@0377 V4072   $2.   /* Principal provid. p/conseg. trab. */
+@0379 V4072A   $1.   /* Principal provid. p/conseg. trab. */
+@0380 V4073   $1.   /* Gostaria de ter trabalhado */
+@0381 V4074   $1.   /* Motivo de n�o ter tomado provid. */
+@0382 V4074A   $2.   /* Motivo de n�o ter tomado provid. */
+@0384 V4075A   $1.   /* Tempo em que ir� come�ar o trab. */
+@0385 V4075A1   $2.   /* Meses em que ir� come�ar o trab. */
+@0387 V4076   $1.   /* Tempo tentando conseguir trabalho */
+@0388 V40761   2.   /* Tempo tentando trab. 1 mes-1 ano */
+@0390 V40762   2.   /* Tempo tentando trab. 1 ano-2 anos */
+@0392 V40763   2.   /* Tempo tentando trab. + de 2 anos */
+@0394 V4077   $1.   /* Poderia ter come�ado a trabalhar */
+@0395 V4078   $1.   /* Motivo p/� querer/come�ar a trab. */
+@0396 V4078A   $1.   /* Motivo p /� querer/come�ar a trab. */
+@0397 V4082   $1.   /* Trab por pelo menos 1 hora em 1 ano*/
+@0398 VD2002   $2.   /* Condi��o no domic�lio */
+@0400 VD2003   2.   /* N�mero de componentes do domic. */
+@0402 VD2004   $1.   /* Esp�cie da unidade dom�stica*/
+@0403 VD2006   $2.   /* Faixas et�rias utilizadas no processo de calibra��o */
+@0405 VD3004   $1.   /* N�vel de instru��o mais elevado alcan�ado (5 anos ou mais de idade) */
+@0406 VD3005   $2.   /* Anos de estudo (5 anos ou mais de idade) para fundamental de 9 anos */
+@0408 VD3006   $1.   /* Grupamento de anos de estudo (pessoas de 5 anos ou mais de idade) para fundamental de 9 anos */
+@0409 VD4001   $1.   /* Condi��o em rela��o for�a d trab. */
+@0410 VD4002   $1.   /* Condi��o de ocupa��o */
+@0411 VD4003   $1.   /* For�a de trabalho potencial */
+@0412 VD4004   $1.   /* Subocupa��o por insufici�n. de hrs efet*/
+@0413 VD4004A   $1.   /* Subocupa��o por insufici�n. de hrs hab*/
+@0414 VD4005   $1.   /* Pessoas desalentadas */
+@0415 VD4007   $1.   /* Posi��o na ocupa��o trab. princ. */
+@0416 VD4008   $1.   /* Posi��o na ocupa��o trab. princ. */
+@0417 VD4009   $2.   /* Posi��o na ocupa��o trab. princ. */
+@0419 VD4010   $2.   /* Grupamen. d ativid. trab. princ. */
+@0421 VD4011   $2.   /* Grupamen. ocupacion. trab. Princ. */
+@0423 VD4012   $1.   /* Contrib. instit. previd. qq trab. */
+@0424 VD4013   $1.   /* Faixa hrs habituais em todos trab. */
+@0425 VD4014   $1.   /* Faixa hrs efetivas em todos trab. */
+@0426 VD4015   $1.   /* Tipo d remunera��o trab. princ. */
+@0427 VD4016   8.   /* Rendim. habitual trab. princ. */
+@0435 VD4017   8.   /* Rendim. efetivo trab. princ. */
+@0443 VD4018   $1.   /* Tipo d remunera��o em qq trabalho */
+@0444 VD4019   8.   /* Rendim. habitual qq trabalho */
+@0452 VD4020   8.   /* Rendim. efetivo qq trabalho */
+@0460 VD4023   $1.   /* Pq � proc./� gost./� disp.p/trab. */
+@0461 VD4030   $1.   /* Pq � proc./� gost./� disp.p/trab. */
+@0462 VD4031   3.   /* Hrs habituais em todos trab. */
+@0465 VD4032   3.   /* Hrs efetivas no trab. princ. */
+@0468 VD4033   3.   /* Hrs efetivas no trab. secun. */
+@0471 VD4034   3.   /* Hrs efetivas no(s) outro(s) trab .*/
+@0474 VD4035   3.   /* Hrs efetivas em todos trab. */
+@0477 VD4036   $1.   /* Faixa hrs habituais trab. princ. */
+@0478 VD4037   $1.   /* Faixa hrs efetivas trab. princ. */
