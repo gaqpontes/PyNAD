@@ -11,7 +11,7 @@ import sys
 import os
 from pathlib import Path
 from functools import cmp_to_key
-
+from variables_dict import variables_dict;
 
 BASE_URL = 'https://ftp.ibge.gov.br/Trabalho_e_Rendimento/Pesquisa_Nacional_por_Amostra_de_Domicilios_continua/Trimestral/Microdados/'
 
