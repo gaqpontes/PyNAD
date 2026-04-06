@@ -5,13 +5,17 @@
 # 4. Extrai os N arquivos para a pasta .\temp
 # 5. Exclui o arquivo zip e mantém o arquivo .txt
 
-import urllib.request
+import requests
 import shutil
 import sys
 import os
 from pathlib import Path
 from functools import cmp_to_key
 from variables_dict import variables_dict;
+from states_dict import states_dict;
+import sqlite3
+
+STATE_POS = 6;
 
 BASE_URL = 'https://ftp.ibge.gov.br/Trabalho_e_Rendimento/Pesquisa_Nacional_por_Amostra_de_Domicilios_continua/Trimestral/Microdados/'
 
@@ -20,6 +24,8 @@ BASE_FOLDER = r'./temp';
 BASE_INPUT_FILE = r'inputs/input_PNADC_trimestral.txt';
 
 BASE_SCHEMA_FOLDER = './sql';
+
+BASE_DATABASE_FOLDER = './db';
 
 BASE_SHEMA_STRING = 'CREATE TABLE IF NOT EXISTS pnad(id INTEGER PRIMARY KEY AUTOINCREMENT {fields} );';
 
@@ -31,6 +37,9 @@ BASE_VALUES_GROUPAGE = 1000;
 
 
 def main():
+    
+    state_filter = load_state_filter();
+
     if len(sys.argv) == 1 or '--download-only' in sys.argv:
 
         url_set = load_urls_manual();
@@ -56,9 +65,41 @@ def main():
 
         add_transaction_begin(f'{BASE_SCHEMA_FOLDER}/values.sql');
         
-        create_insert_values(input_dict, f'{BASE_SCHEMA_FOLDER}/values.sql');
+        create_insert_values(input_dict, f'{BASE_SCHEMA_FOLDER}/values.sql', state_filter);
         
         add_commit(f'{BASE_SCHEMA_FOLDER}/values.sql');
+
+        create_database_folder();
+        
+        create_database(f'{BASE_SCHEMA_FOLDER}/schema.sql', f'{BASE_SCHEMA_FOLDER}/values.sql');
+
+def create_database(schema_path, values_path):
+    print('Inserindo valores no banco de dados.....');
+    db_path = f'{BASE_DATABASE_FOLDER}/pnad.db';
+    conn = sqlite3.connect(db_path);
+    cursor = conn.cursor();
+    
+    cursor.executescript('DROP TABLE IF EXISTS pnad');
+
+    with open(schema_path, 'r') as f:
+        cursor.executescript(f.read());
+
+    with open(values_path, 'r') as f:
+        cursor.executescript(f.read());
+
+    conn.commit();
+    conn.close();
+
+    print('Concluído!');
+
+    return;
+
+
+
+def create_database_folder():
+    
+    Path(BASE_DATABASE_FOLDER).mkdir(parents=True, exist_ok=True)
+
 
 def add_transaction_begin(file_path):
     with open(file_path, "w") as f:
@@ -77,7 +118,7 @@ def compare_file(file1: str, file2: str) -> int:
     return int(file1_date[2:] + file1_date[0:2]) - int(file2_date[2:] + file2_date[0:2]) ; 
 
 
-def create_insert_values(input_dict: dict, file_path: str):
+def create_insert_values(input_dict: dict, file_path: str, state_filter: str = ''):
     files = sorted(os.listdir(BASE_FOLDER), key=cmp_to_key(compare_file));
     with open(file_path, "a") as output_file:
         file_counter = 1;
@@ -85,6 +126,9 @@ def create_insert_values(input_dict: dict, file_path: str):
             with open(f'{BASE_FOLDER}/{file}') as f:
                 line_counter = 0;
                 for line in f:
+                    if state_filter and not (line[ (STATE_POS -1) : (STATE_POS + 1)] == state_filter):
+                        continue;
+
                     fields_array = [];
                     values_array = [];
 
@@ -111,10 +155,11 @@ def create_insert_values(input_dict: dict, file_path: str):
                         
                         output_file.write(f'{insert_line_string}\n{values_line_string}');
                     else:
-                        output_file.write(f',\n({','.join(values_array)})');
+                        output_file.write(f',\n({",".join(values_array)})');
 
                     line_counter = line_counter + 1;
             if(line_counter % BASE_VALUES_GROUPAGE):
+                print(f'Linhas lidas ( {file_counter}/{len(files)} ): {line_counter}');
                 output_file.write(';\n');
             
             file_counter = file_counter + 1;
@@ -184,14 +229,20 @@ def download_url_set(url_set : set) -> set:
 
         print(f'Baixando: {file_name}');
 
-        with urllib.request.urlopen(url) as response, open(file_path_full, 'wb') as out_file:
-            shutil.copyfileobj(response, out_file)
-            out_file.close();
+        response = requests.get(url, stream=True);
+        with open(file_path_full, 'wb') as out_file:
+            shutil.copyfileobj(response.raw, out_file);
         
         file_path_set.add(file_path_full);
     
     return file_path_set;
 
+def load_state_filter() -> str:
+    while state_filter := input('Insira uma sigla de estado para filtrar (ou aperte enter para continuar sem filtro):\n'):
+        if state_filter in states_dict:
+            return states_dict[state_filter];
+
+    return '';
 
 def load_urls_manual() -> set:
 
