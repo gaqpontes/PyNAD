@@ -52,7 +52,7 @@ Após a execução, o arquivo `db/pnad.db` pode ser aberto em qualquer ferrament
 - **Ruan Calebe**
 - **Caio Eduardo**
 - **Robson Severiano**
-- **Gabriel**
+- **Gabriel Pontes**
 
 ---
 **Projeto desenvolvido para manipulação de grandes volumes de dados estatísticos.**
