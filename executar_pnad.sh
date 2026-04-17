@@ -33,6 +33,6 @@ echo -e "${AZUL}== Iniciando PNAD Downloader ==${NC}"
 echo -e "Dica: Tenha os links do FTP do IBGE em mãos."
 python3 pnad_downloader.py
 
-# 5. Finalizar
+# 5. Desativação
 deactivate
 echo -e "${AZUL}== Processo Finalizado ==${NC}"
