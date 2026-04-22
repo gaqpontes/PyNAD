@@ -33,6 +33,15 @@ echo -e "${AZUL}== Iniciando PNAD Downloader ==${NC}"
 echo -e "Dica: Tenha os links do FTP do IBGE em mãos."
 python3 pnad_downloader.py
 
-# 5. Desativação
+# 5. Exportar banco de dados para CSV
+if command -v sqlite3 &> /dev/null; then
+    echo -e "${VERDE}Exportando banco de dados para CSV...${NC}"
+    sqlite3 -header -csv db/pnad.db "SELECT * FROM pnad;" > db/pnad_dados.csv
+    echo -e "CSV gerado com sucesso em: ${VERDE}db/pnad_dados.csv${NC}"
+else
+    echo "Aviso: sqlite3 não encontrado. O CSV não foi gerado automaticamente."
+fi
+
+# 6. Desativação
 deactivate
 echo -e "${AZUL}== Processo Finalizado ==${NC}"
