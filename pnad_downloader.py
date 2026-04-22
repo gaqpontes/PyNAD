@@ -38,11 +38,11 @@ BASE_VALUES_GROUPAGE = 1000
 
 def main():
     
-    state_filter = load_state_filter()
+    state_filter = '15' # Filtro automático para o estado 15 (PA)
 
     if len(sys.argv) == 1 or '--download-only' in sys.argv:
 
-        url_set = load_urls_manual()
+        url_set = load_urls_from_file('inputs/input_12.txt')
 
         if not url_set:
             sys.exit("Erro: a lista de URLS não pode ser vazia")
@@ -72,6 +72,20 @@ def main():
         create_database_folder()
         
         create_database(f'{BASE_SCHEMA_FOLDER}/schema.sql', f'{BASE_SCHEMA_FOLDER}/values.sql')
+
+def load_urls_from_file(file_path: str) -> set:
+    print(f'Carregando URLs de: {file_path}')
+    url_set = set()
+    try:
+        with open(file_path, 'r') as f:
+            for line in f:
+                url = line.strip()
+                if url.startswith(BASE_URL) and url.endswith('.zip'):
+                    url_set.add(url)
+    except FileNotFoundError:
+        print(f"Erro: Arquivo {file_path} não encontrado.")
+    
+    return url_set
 
 def create_database(schema_path, values_path):
     print('Inserindo valores no banco de dados.....')
@@ -238,29 +252,6 @@ def download_url_set(url_set : set) -> set:
         file_path_set.add(file_path_full)
     
     return file_path_set
-
-def load_state_filter() -> str:
-    while state_filter := input('Insira uma sigla de estado para filtrar (ou aperte enter para continuar sem filtro):\n'):
-        if state_filter in states_dict:
-            return states_dict[state_filter]
-
-    return ''
-
-def load_urls_manual() -> set:
-
-    url_set = set()
-    
-    while url_pnad := input('Insira um link .zip do pnad (ou aperte enter para encerrar): \n'):
-        url_validated = validate_url(url_pnad)
-        if( url_validated and url_validated.startswith(BASE_URL) and url_validated.endswith('.zip') ):
-
-            url_set.add(url_validated)
-        
-        else:
-
-            print('Url inválida, tente novamente\n')
-
-    return url_set
 
 
 def validate_url(url_pnad: str) -> str:
