@@ -46,6 +46,24 @@ O dicionário de dados fatiado está localizado em: `inputs/input_PNADC_trimestr
 
 Após a execução, o arquivo `db/pnad.db` pode ser aberto em qualquer ferramenta de banco de dados, como **DB Browser for SQLite** ou **DBeaver**.
 
+## Dashboard Interativo
+
+O projeto agora também possui um front em **Streamlit** para explorar o banco gerado de forma visual.
+
+### Como iniciar
+
+```bash
+source venv/bin/activate
+streamlit run app.py
+```
+
+### O que o dashboard mostra
+
+- Filtros por período, sexo, cor ou raça, faixa etária e posição na ocupação.
+- Indicadores rápidos de volume, idade média e renda média.
+- Gráficos de evolução trimestral, distribuição demográfica e renda do trabalho principal.
+- Tabela filtrável com exportação para CSV.
+
 ## Equipe Responsável
 
 - **Iuri José**
