@@ -6,16 +6,35 @@ import plotly.express as px
 import plotly.graph_objects as go
 import streamlit as st
 
+from queries import (
+    query_total_registros,
+    query_periodos_distintos,
+    query_volume_por_trimestre,
+    query_renda_media_por_trimestre,
+    query_distribuicao_sexo_media_trimestral,
+    query_faixa_etaria_sexo_media_trimestral,
+    query_renda_media_geral,
+    query_horas_medias_gerais,
+    query_renda_por_hora_geral,
+    query_previdencia_percentual,
+    query_com_ocupacao_percentual,
+    query_renda_por_raça,
+    query_renda_por_sexo,
+    query_taxa_previdencia_por_ocupacao,
+)
+
 
 DB_PATH = Path("db/pnad.db")
-PAGE_BACKGROUND = "#f4fbfa"
-CARD_BACKGROUND = "#ffffff"
-TEXT_COLOR = "#12312d"
-MUTED_TEXT_COLOR = "#46615d"
-ACCENT_COLOR = "#0f766e"
-ACCENT_COLOR_SOFT = "#14b8a6"
-ACCENT_COLOR_ALT = "#0ea5a4"
-GRID_COLOR = "#c9ded9"
+PAGE_BACKGROUND = "#07131f"
+CARD_BACKGROUND = "#0f1f2e"
+TEXT_COLOR = "#e5f4ff"
+MUTED_TEXT_COLOR = "#9fb7c9"
+ACCENT_COLOR = "#38bdf8"
+ACCENT_COLOR_SOFT = "#a78bfa"
+ACCENT_COLOR_ALT = "#f59e0b"
+GRID_COLOR = "#244154"
+SEQUENTIAL_SCALE = ["#172554", "#2563eb", "#38bdf8"]
+SEQUENTIAL_SCALE_ALT = ["#1e1b4b", "#7c3aed", "#f59e0b"]
 
 SEX_MAP = {
     "1": "Homens",
@@ -27,23 +46,46 @@ RACE_MAP = {
     "2": "Preta",
     "3": "Amarela",
     "4": "Parda",
-    "5": "Indigena",
+    "5": "Indígena",
     "9": "Ignorado",
 }
 
 PREVIDENCIA_MAP = {
     "1": "Sim",
-    "2": "Nao",
+    "2": "Não",
+}
+
+EDUCATION_MAP = {
+    "01": "Creche",
+    "02": "Pré-escola",
+    "03": "Classe de alfabetização",
+    "04": "Alfabetização de jovens e adultos",
+    "05": "Antigo primário",
+    "06": "Antigo ginásio",
+    "07": "Ensino fundamental regular",
+    "08": "EJA do ensino fundamental",
+    "09": "Antigo científico/clássico",
+    "10": "Ensino médio regular",
+    "11": "EJA do ensino médio",
+    "12": "Superior - graduação",
+    "13": "Especialização",
+    "14": "Mestrado",
+    "15": "Doutorado",
+}
+
+COURSE_COMPLETION_MAP = {
+    "1": "Concluiu",
+    "2": "Não concluiu",
 }
 
 OCCUPATION_MAP = {
-    "1": "Trabalhador domestico",
-    "2": "Militar das Forcas Armadas, policia militar ou corpo de bombeiros militar",
+    "1": "Trabalhador doméstico",
+    "2": "Militar das Forças Armadas, polícia militar ou corpo de bombeiros militar",
     "3": "Empregado do setor privado",
-    "4": "Empregado do setor publico",
+    "4": "Empregado do setor público",
     "5": "Empregador",
-    "6": "Conta propria",
-    "7": "Trabalhador familiar nao remunerado",
+    "6": "Conta própria",
+    "7": "Trabalhador familiar não remunerado",
 }
 
 
@@ -53,6 +95,29 @@ def format_period(year: str, quarter: str) -> str:
 
 def parse_numeric(series: pd.Series) -> pd.Series:
     return pd.to_numeric(series, errors="coerce")
+
+
+def format_compact_pt(value: float | int | None) -> str:
+    if pd.isna(value):
+        return ""
+    abs_value = abs(value)
+    if abs_value >= 1_000_000:
+        return f"{value / 1_000_000:.1f} milhões".replace(".", ",")
+    if abs_value >= 1_000:
+        return f"{value / 1_000:.1f} mil".replace(".", ",")
+    return f"{value:,.0f}".replace(",", ".")
+
+
+def format_currency_pt(value: float | int | None) -> str:
+    if pd.isna(value):
+        return ""
+    return f"R$ {value:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+
+
+def format_decimal_pt(value: float | int | None, decimals: int = 1) -> str:
+    if pd.isna(value):
+        return ""
+    return f"{value:,.{decimals}f}".replace(",", "X").replace(".", ",").replace("X", ".")
 
 
 def weighted_mean(df: pd.DataFrame, value_col: str, weight_col: str = "peso") -> float | None:
@@ -93,18 +158,42 @@ def summarize_weighted_sum(df: pd.DataFrame, group_cols: list[str], weight_col: 
     return grouped
 
 
+def selected_period_count(df: pd.DataFrame) -> int:
+    if "_selected_period_count" in df.columns and not df["_selected_period_count"].dropna().empty:
+        return max(int(df["_selected_period_count"].dropna().iloc[0]), 1)
+    if "selected_period_count" in df.attrs:
+        return max(int(df.attrs["selected_period_count"]), 1)
+    periods = df[["Ano", "Trimestre"]].drop_duplicates()
+    return max(len(periods), 1)
+
+
+def average_quarterly_weight(df: pd.DataFrame, weight_col: str = "peso") -> float:
+    return df[weight_col].sum() / selected_period_count(df)
+
+
+def summarize_volume(df: pd.DataFrame, group_cols: list[str], mode: str) -> pd.DataFrame:
+    grouped = df.groupby(group_cols, dropna=False, as_index=False).agg(
+        registros=("id", "count"),
+        peso=("peso", "sum"),
+    )
+    grouped["peso"] = grouped["peso"] / selected_period_count(df)
+    return grouped
+
+
 def apply_chart_style(fig):
     fig.update_layout(
         font=dict(color=TEXT_COLOR),
         title_font=dict(color=TEXT_COLOR, size=18),
         paper_bgcolor=CARD_BACKGROUND,
         plot_bgcolor=CARD_BACKGROUND,
+        separators=",.",
         coloraxis_colorbar=dict(
             title_font=dict(color=TEXT_COLOR),
             tickfont=dict(color=TEXT_COLOR),
+            tickformat=",.0f",
         ),
         legend=dict(
-            bgcolor="rgba(255,255,255,0.88)",
+            bgcolor="rgba(15,31,46,0.88)",
             bordercolor=GRID_COLOR,
             borderwidth=1,
             font=dict(color=TEXT_COLOR),
@@ -122,6 +211,7 @@ def apply_chart_style(fig):
         zerolinecolor=GRID_COLOR,
         tickfont=dict(color=TEXT_COLOR),
         title_font=dict(color=TEXT_COLOR),
+        tickformat=",.0f",
     )
     return fig
 
@@ -143,6 +233,8 @@ def load_data() -> pd.DataFrame:
             V2007,
             V2009,
             V2010,
+            V3009A,
+            V3014,
             V4012,
             V4032,
             V4039,
@@ -157,28 +249,32 @@ def load_data() -> pd.DataFrame:
     df["periodo"] = df.apply(lambda row: format_period(row["Ano"], row["Trimestre"]), axis=1)
     df["idade"] = parse_numeric(df["V2009"])
     df["peso"] = parse_numeric(df["V1028"])
-    df["sexo"] = df["V2007"].map(SEX_MAP).fillna("Nao informado")
-    df["raca"] = df["V2010"].map(RACE_MAP).fillna("Nao informada")
-    df["ocupacao_codigo"] = df["V4012"].fillna("").replace("", "Sem informacao")
+    df["sexo"] = df["V2007"].map(SEX_MAP).fillna("Não informado")
+    df["raca"] = df["V2010"].map(RACE_MAP).fillna("Não informada")
+    df["escolaridade"] = df["V3009A"].map(EDUCATION_MAP).fillna("Não informada")
+    df["curso_concluido"] = df["V3014"].map(COURSE_COMPLETION_MAP).fillna("Não informado")
+    df["ocupacao_codigo"] = df["V4012"].fillna("").replace("", "Sem informação")
     df["ocupacao"] = df["ocupacao_codigo"].apply(
-        lambda code: "Sem informacao"
-        if code == "Sem informacao"
-        else f"{OCCUPATION_MAP.get(code, 'Codigo nao mapeado')} ({code})"
+        lambda code: "Sem informação"
+        if code == "Sem informação"
+        else f"{OCCUPATION_MAP.get(code, 'Código não mapeado')} ({code})"
     )
-    df["previdencia"] = df["V4032"].map(PREVIDENCIA_MAP).fillna("Sem informacao")
+    df["previdencia"] = df["V4032"].map(PREVIDENCIA_MAP).fillna("Sem informação")
     df["horas_habituais"] = parse_numeric(df["V4039"])
     df["horas_efetivas"] = parse_numeric(df["V4039C"])
     df["renda_habitual_principal"] = parse_numeric(df["V403312"])
     df["renda_efetiva_principal"] = parse_numeric(df["V403412"])
     df["renda_habitual_secundaria"] = parse_numeric(df["V405012"])
     df["renda_efetiva_secundaria"] = parse_numeric(df["V405112"])
+    df["renda_por_hora"] = df["renda_habitual_principal"] / (df["horas_habituais"] * 4.33)
+    df.loc[df["horas_habituais"].le(0), "renda_por_hora"] = pd.NA
     df["faixa_etaria"] = pd.cut(
         df["idade"],
         bins=[0, 17, 24, 34, 44, 59, 120],
         labels=["0-17", "18-24", "25-34", "35-44", "45-59", "60+"],
         include_lowest=True,
-    ).astype(str).replace("nan", "Nao informada")
-    df["tem_ocupacao"] = df["ocupacao_codigo"].ne("Sem informacao")
+    ).astype(str).replace("nan", "Não informada")
+    df["tem_ocupacao"] = df["ocupacao_codigo"].ne("Sem informação")
     df["tem_renda_principal"] = df["renda_habitual_principal"].notna()
     return df
 
@@ -187,25 +283,47 @@ def filter_dataframe(df: pd.DataFrame) -> tuple[pd.DataFrame, str]:
     st.sidebar.header("Filtros")
 
     periodos = sorted(df["periodo"].dropna().unique().tolist())
-    periodos_escolhidos = st.sidebar.multiselect("Periodos", periodos, default=periodos)
+    periodos_escolhidos = st.sidebar.multiselect("Períodos", periodos, default=periodos)
+    selected_period_total = max(len(periodos_escolhidos), 1)
 
     sexos = sorted(df["sexo"].dropna().unique().tolist())
     sexos_escolhidos = st.sidebar.multiselect("Sexo", sexos, default=sexos)
 
     racas = sorted(df["raca"].dropna().unique().tolist())
-    racas_escolhidas = st.sidebar.multiselect("Cor ou raca", racas, default=racas)
+    racas_escolhidas = st.sidebar.multiselect("Cor ou raça", racas, default=racas)
 
     ocupacoes = sorted(df["ocupacao"].dropna().unique().tolist())
     ocupacoes_escolhidas = st.sidebar.multiselect(
-        "Posicao na ocupacao",
+        "Posição na ocupação",
         ocupacoes,
         default=ocupacoes,
+    )
+
+    previdencias = sorted(df["previdencia"].dropna().unique().tolist())
+    previdencias_escolhidas = st.sidebar.multiselect(
+        "Contribuição previdenciária",
+        previdencias,
+        default=previdencias,
+    )
+
+    escolaridades = ordered_options(df["escolaridade"], list(EDUCATION_MAP.values()) + ["Não informada"])
+    escolaridades_escolhidas = st.sidebar.multiselect(
+        "Grau de escolaridade",
+        escolaridades,
+        default=escolaridades,
+    )
+
+    conclusoes = sorted(df["curso_concluido"].dropna().unique().tolist())
+    conclusoes_escolhidas = st.sidebar.multiselect(
+        "Conclusão do curso",
+        conclusoes,
+        default=conclusoes,
     )
 
     idade_min = int(df["idade"].min(skipna=True) or 0)
     idade_max = int(df["idade"].max(skipna=True) or 100)
     faixa_idade = st.sidebar.slider(
-        "Faixa etaria",
+        "Faixa etária",
         min_value=idade_min,
         max_value=idade_max,
         value=(idade_min, idade_max),
@@ -213,7 +331,7 @@ def filter_dataframe(df: pd.DataFrame) -> tuple[pd.DataFrame, str]:
 
     contagem_modo = st.sidebar.radio(
         "Escala das contagens",
-        options=["Estimativa ponderada", "Registros brutos"],
+        options=["Estimativa ponderada média trimestral", "Registros brutos"],
         index=0,
     )
 
@@ -222,6 +340,9 @@ def filter_dataframe(df: pd.DataFrame) -> tuple[pd.DataFrame, str]:
         & df["sexo"].isin(sexos_escolhidos)
         & df["raca"].isin(racas_escolhidas)
         & df["ocupacao"].isin(ocupacoes_escolhidas)
+        & df["previdencia"].isin(previdencias_escolhidas)
+        & df["escolaridade"].isin(escolaridades_escolhidas)
+        & df["curso_concluido"].isin(conclusoes_escolhidas)
     ].copy()
 
     filtered = filtered[
@@ -229,56 +350,102 @@ def filter_dataframe(df: pd.DataFrame) -> tuple[pd.DataFrame, str]:
         | filtered["idade"].between(faixa_idade[0], faixa_idade[1])
     ]
 
+    renda_valida = df["renda_habitual_principal"].dropna()
+    if not renda_valida.empty:
+        renda_min = int(renda_valida.min())
+        renda_max = int(renda_valida.max())
+        faixa_renda = st.sidebar.slider(
+            "Faixa de renda habitual principal",
+            min_value=renda_min,
+            max_value=renda_max,
+            value=(renda_min, renda_max),
+            step=100,
+            format="R$ %d",
+        )
+        filtered = filtered[
+            filtered["renda_habitual_principal"].isna()
+            | filtered["renda_habitual_principal"].between(faixa_renda[0], faixa_renda[1])
+        ]
+
+    filtered.attrs["selected_period_count"] = selected_period_total
+    filtered["_selected_period_count"] = selected_period_total
     return filtered, contagem_modo
 
 
 def value_column_name(mode: str) -> str:
-    return "peso" if mode == "Estimativa ponderada" else "registros"
+    return "peso" if mode == "Estimativa ponderada média trimestral" else "registros"
+
+
+def volume_axis_label(mode: str) -> str:
+    return "Estimativa média trimestral" if value_column_name(mode) == "peso" else "Registros"
+
+
+def volume_title_suffix(mode: str) -> str:
+    return " - média trimestral" if value_column_name(mode) == "peso" else " - registros brutos"
+
+
+def ordered_options(values: pd.Series, preferred_order: list[str]) -> list[str]:
+    available = set(values.dropna().unique().tolist())
+    ordered = [option for option in preferred_order if option in available]
+    remaining = sorted(available - set(ordered))
+    return ordered + remaining
 
 
 def metric_cards(df: pd.DataFrame) -> None:
-    total_registros = len(df)
-    populacao_estimada = df["peso"].sum()
-    renda_media = weighted_mean(df, "renda_habitual_principal")
-    horas_medias = weighted_mean(df, "horas_habituais")
-    share_previdencia = weighted_share(df, df["previdencia"].eq("Sim"))
+    """Exibe cards de métricas principais usando queries SQL validadas."""
+    total_registros = query_total_registros()
+    
+    # Para população média estimada, usamos a média trimestral
+    periodos = query_periodos_distintos()
+    num_periodos = len(periodos)
+    
+    # Calcula peso total e divide pelo número de períodos
+    peso_total = df["peso"].sum()
+    populacao_estimada = peso_total / num_periodos if num_periodos > 0 else 0
+    
+    # Usa queries SQL validadas para métricas principais
+    renda_media = query_renda_media_geral()
+    horas_medias = query_horas_medias_gerais()
+    share_previdencia = query_previdencia_percentual()
 
     col1, col2, col3, col4, col5 = st.columns(5)
     col1.metric("Registros filtrados", f"{total_registros:,}".replace(",", "."))
-    col2.metric("Peso amostral somado", f"{populacao_estimada:,.0f}".replace(",", "."))
+    col2.metric("População média estimada", f"{populacao_estimada:,.0f}".replace(",", "."))
     col3.metric(
-        "Renda habitual media",
-        f"R$ {renda_media:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+        "Renda habitual média",
+        format_currency_pt(renda_media)
         if renda_media is not None
         else "Sem dados",
     )
     col4.metric(
-        "Horas habituais medias",
+        "Horas habituais médias",
         f"{horas_medias:.1f} h" if horas_medias is not None else "Sem dados",
     )
     col5.metric(
-        "Contribui previdencia",
+        "Contribui previdência",
         f"{share_previdencia:.1f}%" if share_previdencia is not None else "Sem dados",
     )
 
 
 def build_period_volume_chart(df: pd.DataFrame, mode: str):
-    grouped = (
-        df.groupby(["Ano", "Trimestre", "periodo"], as_index=False)
-        .agg(registros=("id", "count"), peso=("peso", "sum"))
-        .sort_values(["Ano", "Trimestre"])
-    )
+    """Constrói gráfico de volume por trimestre usando query SQL validada."""
+    # Usa query SQL validada
+    volumes = query_volume_por_trimestre()
+    
+    # Converte para DataFrame
+    grouped = pd.DataFrame(volumes)
+    
     y_col = value_column_name(mode)
-    label = "Estimativa ponderada" if y_col == "peso" else "Registros"
+    label = "Estimativa ponderada no trimestre" if y_col == "peso" else "Registros"
 
     fig = px.bar(
         grouped,
         x="periodo",
         y=y_col,
-        text_auto=".2s",
+        text=grouped[y_col].apply(format_compact_pt),
         color="peso",
-        color_continuous_scale=["#d8f6f1", "#6dd3c4", "#0f766e"],
-        labels={"periodo": "Periodo", y_col: label, "peso": "Peso"},
+        color_continuous_scale=SEQUENTIAL_SCALE,
+        labels={"periodo": "Período", y_col: label, "peso": "Peso"},
     )
     fig.update_traces(textfont=dict(color=TEXT_COLOR))
     fig.update_layout(title="Volume por trimestre")
@@ -286,70 +453,70 @@ def build_period_volume_chart(df: pd.DataFrame, mode: str):
 
 
 def build_income_trend_chart(df: pd.DataFrame):
-    hab = summarize_weighted_mean(df, ["Ano", "Trimestre", "periodo"], "renda_habitual_principal")
-    efet = summarize_weighted_mean(df, ["Ano", "Trimestre", "periodo"], "renda_efetiva_principal")
-    if hab.empty and efet.empty:
+    """Constrói gráfico de tendência de renda usando query SQL validada."""
+    # Usa query SQL validada para renda habitual
+    rendas = query_renda_media_por_trimestre()
+    
+    if not rendas:
         fig = go.Figure()
-        fig.update_layout(title="Renda media do trabalho principal")
+        fig.update_layout(title="Renda média do trabalho principal")
         return apply_chart_style(fig)
-
-    hab["tipo"] = "Renda habitual"
-    efet["tipo"] = "Renda efetiva"
-    income_df = pd.concat([hab, efet], ignore_index=True).sort_values(["Ano", "Trimestre"])
+    
+    # Converte para DataFrame
+    income_df = pd.DataFrame(rendas)
+    income_df["tipo"] = "Renda habitual"
 
     fig = px.line(
         income_df,
         x="periodo",
-        y="valor",
+        y="renda_media",
         color="tipo",
         markers=True,
         color_discrete_sequence=[ACCENT_COLOR, ACCENT_COLOR_SOFT],
-        labels={"periodo": "Periodo", "valor": "Valor medio", "tipo": "Indicador"},
+        labels={"periodo": "Período", "renda_media": "Valor médio", "tipo": "Indicador"},
     )
     fig.update_traces(line=dict(width=3), marker=dict(size=8))
-    fig.update_layout(title="Renda media do trabalho principal")
+    fig.update_layout(title="Renda média do trabalho principal")
     return apply_chart_style(fig)
 
 
 def build_gender_share_chart(df: pd.DataFrame, mode: str):
-    grouped = (
-        df.groupby("sexo", as_index=False)
-        .agg(registros=("id", "count"), peso=("peso", "sum"))
-        .sort_values(value_column_name(mode), ascending=False)
-    )
+    """Constrói gráfico de distribuição por sexo usando query SQL validada."""
+    # Usa query SQL validada
+    distribuicao = query_distribuicao_sexo_media_trimestral()
+    
+    # Converte para DataFrame
+    grouped = pd.DataFrame(distribuicao)
+    grouped = grouped.sort_values("peso_medio", ascending=False)
+    
     fig = px.pie(
         grouped,
         names="sexo",
-        values=value_column_name(mode),
+        values="peso_medio",
         hole=0.55,
-        color_discrete_sequence=["#0f766e", "#5bc9b8", "#99f6e4"],
+        color_discrete_sequence=[ACCENT_COLOR, ACCENT_COLOR_SOFT, ACCENT_COLOR_ALT],
     )
     fig.update_traces(textposition="inside", textinfo="percent+label", textfont=dict(color="#ffffff"))
-    fig.update_layout(title="Distribuicao por sexo", showlegend=False)
+    fig.update_layout(title=f"Distribuição por sexo{volume_title_suffix(mode)}", showlegend=False)
     return apply_chart_style(fig)
 
 
 def build_sex_race_heatmap(df: pd.DataFrame, mode: str):
-    grouped = (
-        df.groupby(["sexo", "raca"], as_index=False)
-        .agg(registros=("id", "count"), peso=("peso", "sum"))
-    )
+    grouped = summarize_volume(df, ["sexo", "raca"], mode)
     matrix = grouped.pivot(index="sexo", columns="raca", values=value_column_name(mode)).fillna(0)
     fig = px.imshow(
         matrix,
-        text_auto=".2s",
-        color_continuous_scale=["#ecfeff", "#67e8f9", "#0f766e"],
-        labels=dict(x="Cor ou raca", y="Sexo", color="Volume"),
+        color_continuous_scale=SEQUENTIAL_SCALE,
+        labels=dict(x="Cor ou raça", y="Sexo", color=volume_axis_label(mode)),
     )
-    fig.update_layout(title="Cruzamento de sexo e cor ou raca")
+    text_matrix = matrix.apply(lambda column: column.map(format_compact_pt))
+    fig.update_traces(text=text_matrix.values, texttemplate="%{text}")
+    fig.update_layout(title=f"Cruzamento de sexo e cor ou raça{volume_title_suffix(mode)}")
     return apply_chart_style(fig)
 
 
 def build_age_sex_chart(df: pd.DataFrame, mode: str):
-    grouped = (
-        df.groupby(["faixa_etaria", "sexo"], as_index=False)
-        .agg(registros=("id", "count"), peso=("peso", "sum"))
-    )
+    grouped = summarize_volume(df, ["faixa_etaria", "sexo"], mode)
     fig = px.bar(
         grouped,
         x="faixa_etaria",
@@ -357,58 +524,77 @@ def build_age_sex_chart(df: pd.DataFrame, mode: str):
         color="sexo",
         barmode="group",
         color_discrete_sequence=[ACCENT_COLOR, ACCENT_COLOR_SOFT],
-        labels={"faixa_etaria": "Faixa etaria", value_column_name(mode): "Volume"},
+        labels={"faixa_etaria": "Faixa etária", value_column_name(mode): volume_axis_label(mode)},
     )
-    fig.update_layout(title="Faixa etaria por sexo")
+    fig.update_layout(title=f"Faixa etária por sexo{volume_title_suffix(mode)}")
+    return apply_chart_style(fig)
+
+
+def build_education_distribution_chart(df: pd.DataFrame, mode: str):
+    grouped = summarize_volume(df, ["escolaridade"], mode).sort_values(value_column_name(mode), ascending=False)
+    fig = px.bar(
+        grouped,
+        x="escolaridade",
+        y=value_column_name(mode),
+        text=grouped[value_column_name(mode)].apply(format_compact_pt),
+        color=value_column_name(mode),
+        color_continuous_scale=SEQUENTIAL_SCALE,
+        labels={"escolaridade": "Grau de escolaridade", value_column_name(mode): volume_axis_label(mode)},
+    )
+    fig.update_traces(textfont=dict(color=TEXT_COLOR))
+    fig.update_layout(title=f"Distribuição por grau de escolaridade{volume_title_suffix(mode)}")
     return apply_chart_style(fig)
 
 
 def build_race_income_chart(df: pd.DataFrame):
-    income = summarize_weighted_mean(df, ["raca"], "renda_habitual_principal").sort_values("valor", ascending=False)
-    if income.empty:
+    """Constrói gráfico de renda por raça usando query SQL validada."""
+    # Usa query SQL validada
+    rendas = query_renda_por_raça()
+    
+    if not rendas:
         fig = go.Figure()
-        fig.update_layout(title="Renda media por cor ou raca")
+        fig.update_layout(title="Renda média por cor ou raça")
         return apply_chart_style(fig)
+    
+    # Converte para DataFrame
+    income = pd.DataFrame(rendas)
+    income = income.sort_values("renda_media", ascending=False)
+    
     fig = px.bar(
         income,
         x="raca",
-        y="valor",
-        text_auto=".2f",
-        color="valor",
-        color_continuous_scale=["#d8f6f1", "#6dd3c4", "#0f766e"],
-        labels={"raca": "Cor ou raca", "valor": "Renda media"},
+        y="renda_media",
+        text=income["renda_media"].apply(format_currency_pt),
+        color="renda_media",
+        color_continuous_scale=SEQUENTIAL_SCALE_ALT,
+        labels={"raca": "Cor ou raça", "renda_media": "Renda média"},
     )
     fig.update_traces(textfont=dict(color=TEXT_COLOR))
-    fig.update_layout(title="Renda media por cor ou raca")
+    fig.update_layout(title="Renda média por cor ou raça")
     return apply_chart_style(fig)
 
 
 def build_occupation_distribution_chart(df: pd.DataFrame, mode: str):
-    grouped = (
-        df[df["tem_ocupacao"]]
-        .groupby("ocupacao", as_index=False)
-        .agg(registros=("id", "count"), peso=("peso", "sum"))
-        .sort_values(value_column_name(mode), ascending=False)
-    )
+    grouped = summarize_volume(df[df["tem_ocupacao"]], ["ocupacao"], mode).sort_values(value_column_name(mode), ascending=False)
     fig = px.bar(
         grouped,
         x="ocupacao",
         y=value_column_name(mode),
-        text_auto=".2s",
+        text=grouped[value_column_name(mode)].apply(format_compact_pt),
         color=value_column_name(mode),
-        color_continuous_scale=["#d8f6f1", "#6dd3c4", "#0f766e"],
-        labels={"ocupacao": "Posicao na ocupacao", value_column_name(mode): "Volume"},
+        color_continuous_scale=SEQUENTIAL_SCALE,
+        labels={"ocupacao": "Posição na ocupação", value_column_name(mode): volume_axis_label(mode)},
     )
     fig.update_traces(textfont=dict(color=TEXT_COLOR))
-    fig.update_layout(title="Distribuicao da posicao na ocupacao")
+    fig.update_layout(title=f"Distribuição da posição na ocupação{volume_title_suffix(mode)}")
     return apply_chart_style(fig)
 
 
 def build_previdencia_occupation_chart(df: pd.DataFrame, mode: str):
-    grouped = (
-        df[(df["tem_ocupacao"]) & (df["previdencia"] != "Sem informacao")]
-        .groupby(["ocupacao", "previdencia"], as_index=False)
-        .agg(registros=("id", "count"), peso=("peso", "sum"))
+    grouped = summarize_volume(
+        df[(df["tem_ocupacao"]) & (df["previdencia"] != "Sem informação")],
+        ["ocupacao", "previdencia"],
+        mode,
     )
     fig = px.bar(
         grouped,
@@ -417,9 +603,9 @@ def build_previdencia_occupation_chart(df: pd.DataFrame, mode: str):
         color="previdencia",
         barmode="stack",
         color_discrete_sequence=[ACCENT_COLOR, "#f59e0b"],
-        labels={"ocupacao": "Posicao na ocupacao", value_column_name(mode): "Volume"},
+        labels={"ocupacao": "Posição na ocupação", value_column_name(mode): volume_axis_label(mode)},
     )
-    fig.update_layout(title="Previdencia por posicao na ocupacao")
+    fig.update_layout(title=f"Previdência por posição na ocupação{volume_title_suffix(mode)}")
     return apply_chart_style(fig)
 
 
@@ -428,7 +614,7 @@ def build_hours_trend_chart(df: pd.DataFrame):
     efe = summarize_weighted_mean(df, ["Ano", "Trimestre", "periodo"], "horas_efetivas")
     if hab.empty and efe.empty:
         fig = go.Figure()
-        fig.update_layout(title="Horas medias de trabalho")
+        fig.update_layout(title="Horas médias de trabalho")
         return apply_chart_style(fig)
     hab["tipo"] = "Horas habituais"
     efe["tipo"] = "Horas efetivas"
@@ -440,10 +626,10 @@ def build_hours_trend_chart(df: pd.DataFrame):
         color="tipo",
         markers=True,
         color_discrete_sequence=[ACCENT_COLOR, ACCENT_COLOR_ALT],
-        labels={"periodo": "Periodo", "valor": "Horas medias", "tipo": "Indicador"},
+        labels={"periodo": "Período", "valor": "Horas médias", "tipo": "Indicador"},
     )
     fig.update_traces(line=dict(width=3), marker=dict(size=8))
-    fig.update_layout(title="Horas medias de trabalho")
+    fig.update_layout(title="Horas médias de trabalho")
     return apply_chart_style(fig)
 
 
@@ -457,10 +643,10 @@ def build_income_by_group_chart(df: pd.DataFrame, group_col: str, title: str):
         income,
         x=group_col,
         y="valor",
-        text_auto=".2f",
+        text=income["valor"].apply(format_currency_pt),
         color="valor",
-        color_continuous_scale=["#d8f6f1", "#6dd3c4", "#0f766e"],
-        labels={group_col: group_col.replace("_", " ").title(), "valor": "Renda media"},
+        color_continuous_scale=SEQUENTIAL_SCALE_ALT,
+        labels={group_col: group_col.replace("_", " ").title(), "valor": "Renda média"},
     )
     fig.update_traces(textfont=dict(color=TEXT_COLOR))
     fig.update_layout(title=title)
@@ -485,7 +671,7 @@ def build_income_by_sex_period_chart(df: pd.DataFrame):
     chart_df = pd.DataFrame(rows)
     if chart_df.empty:
         fig = go.Figure()
-        fig.update_layout(title="Renda media por sexo ao longo do tempo")
+        fig.update_layout(title="Renda média por sexo ao longo do tempo")
         return apply_chart_style(fig)
     chart_df = chart_df.sort_values(["Ano", "Trimestre"])
     fig = px.line(
@@ -495,21 +681,101 @@ def build_income_by_sex_period_chart(df: pd.DataFrame):
         color="sexo",
         markers=True,
         color_discrete_sequence=[ACCENT_COLOR, ACCENT_COLOR_SOFT],
-        labels={"periodo": "Periodo", "valor": "Renda media", "sexo": "Sexo"},
+        labels={"periodo": "Período", "valor": "Renda média", "sexo": "Sexo"},
     )
-    fig.update_layout(title="Renda media por sexo ao longo do tempo")
+    fig.update_layout(title="Renda média por sexo ao longo do tempo")
     return apply_chart_style(fig)
 
 
 def build_income_gap_table(df: pd.DataFrame) -> pd.DataFrame:
-    rows = []
-    for sexo, group in df.groupby("sexo", dropna=False):
-        renda = weighted_mean(group, "renda_habitual_principal")
-        if renda is None:
-            continue
-        rows.append({"Sexo": sexo, "Renda media": renda})
-    table = pd.DataFrame(rows).sort_values("Renda media", ascending=False)
+    """Constrói tabela de gap de renda por sexo usando query SQL validada."""
+    # Usa query SQL validada
+    rendas = query_renda_por_sexo()
+    
+    if not rendas:
+        return pd.DataFrame()
+    
+    # Converte para DataFrame
+    table = pd.DataFrame(rendas)
+    table = table.rename(columns={"renda_media": "Renda média"})
+    table = table.sort_values("Renda média", ascending=False)
+    
+    if len(table) >= 2:
+        maior_renda = table["Renda média"].max()
+        table["Diferença para maior renda"] = ((maior_renda - table["Renda média"]) / maior_renda) * 100
+    
     return table
+
+
+def build_income_gap_chart(df: pd.DataFrame):
+    """Constrói gráfico de gap de renda por sexo usando query SQL validada."""
+    table = build_income_gap_table(df)
+    
+    if table.empty:
+        fig = go.Figure()
+        fig.update_layout(title="Gap de renda média por sexo")
+        return apply_chart_style(fig)
+    
+    fig = px.bar(
+        table,
+        x="sexo",
+        y="Renda média",
+        text=table["Renda média"].apply(format_currency_pt),
+        color="Renda média",
+        color_continuous_scale=SEQUENTIAL_SCALE_ALT,
+        labels={"sexo": "Sexo", "Renda média": "Renda média"},
+    )
+    fig.update_traces(textfont=dict(color=TEXT_COLOR))
+    fig.update_layout(title="Gap de renda média por sexo")
+    return apply_chart_style(fig)
+
+
+def build_hourly_income_by_group_chart(df: pd.DataFrame, group_col: str, title: str):
+    hourly = summarize_weighted_mean(df, [group_col], "renda_por_hora").sort_values("valor", ascending=False)
+    if hourly.empty:
+        fig = go.Figure()
+        fig.update_layout(title=title)
+        return apply_chart_style(fig)
+    fig = px.bar(
+        hourly,
+        x=group_col,
+        y="valor",
+        text=hourly["valor"].apply(lambda value: f"{format_currency_pt(value)}/h"),
+        color="valor",
+        color_continuous_scale=SEQUENTIAL_SCALE_ALT,
+        labels={group_col: group_col.replace("_", " ").title(), "valor": "Renda por hora aproximada"},
+    )
+    fig.update_traces(textfont=dict(color=TEXT_COLOR))
+    fig.update_layout(title=title)
+    return apply_chart_style(fig)
+
+
+def build_previdencia_rate_by_occupation_chart(df: pd.DataFrame):
+    """Constrói gráfico de taxa de previdência por ocupação usando query SQL validada."""
+    # Usa query SQL validada
+    taxas = query_taxa_previdencia_por_ocupacao()
+    
+    if not taxas:
+        fig = go.Figure()
+        fig.update_layout(title="Taxa de contribuição previdenciária por ocupação")
+        return apply_chart_style(fig)
+    
+    # Converte para DataFrame
+    chart_df = pd.DataFrame(taxas)
+    chart_df = chart_df.sort_values("taxa", ascending=False)
+    
+    fig = px.bar(
+        chart_df,
+        x="ocupacao",
+        y="taxa",
+        text=chart_df["taxa"].apply(lambda value: f"{format_decimal_pt(value)}%"),
+        color="taxa",
+        color_continuous_scale=SEQUENTIAL_SCALE,
+        labels={"ocupacao": "Posição na ocupação", "taxa": "Contribui previdência (%)"},
+    )
+    fig.update_traces(textfont=dict(color=TEXT_COLOR))
+    fig.update_layout(title="Taxa de contribuição previdenciária por ocupação")
+    return apply_chart_style(fig)
 
 
 def render_microdata_table(df: pd.DataFrame) -> None:
@@ -521,6 +787,8 @@ def render_microdata_table(df: pd.DataFrame) -> None:
             "idade",
             "faixa_etaria",
             "raca",
+            "escolaridade",
+            "curso_concluido",
             "ocupacao",
             "previdencia",
             "horas_habituais",
@@ -531,10 +799,12 @@ def render_microdata_table(df: pd.DataFrame) -> None:
         columns={
             "sexo": "Sexo",
             "idade": "Idade",
-            "faixa_etaria": "Faixa etaria",
-            "raca": "Cor ou raca",
-            "ocupacao": "Posicao ocupacao",
-            "previdencia": "Previdencia",
+            "faixa_etaria": "Faixa etária",
+            "raca": "Cor ou raça",
+            "escolaridade": "Grau de escolaridade",
+            "curso_concluido": "Conclusão do curso",
+            "ocupacao": "Posição na ocupação",
+            "previdencia": "Previdência",
             "horas_habituais": "Horas habituais",
             "renda_habitual_principal": "Renda habitual principal",
             "renda_efetiva_principal": "Renda efetiva principal",
@@ -546,6 +816,64 @@ def render_microdata_table(df: pd.DataFrame) -> None:
         data=preview.to_csv(index=False).encode("utf-8"),
         file_name="pnad_filtrada.csv",
         mime="text/csv",
+    )
+
+
+def render_methodology(df: pd.DataFrame) -> None:
+    min_year = df["Ano"].min()
+    max_year = df["Ano"].max()
+    total_rows = f"{len(df):,}".replace(",", ".")
+
+    st.subheader("Metodologia e Base de Dados")
+    st.markdown(
+        f"""
+        Este painel utiliza os microdados trimestrais da PNAD Contínua do IBGE, com recorte para o Pará (UF 15).
+        A base carregada possui **{total_rows} registros** entre **{min_year} e {max_year}**, consolidados em SQLite pelo pipeline da primeira etapa do projeto.
+
+        O fluxo de dados é: lista de links do FTP do IBGE, download dos arquivos ZIP, extração dos TXT de largura fixa,
+        leitura das 77 variáveis selecionadas, filtro do estado do Pará, geração dos comandos SQL e carga final em `db/pnad.db`.
+        """
+    )
+    st.markdown(
+        "As médias de renda e horas são calculadas com o peso amostral `V1028`, quando disponível. "
+        "As contagens podem ser alternadas entre registros brutos e estimativas ponderadas médias por trimestre na barra lateral."
+    )
+
+
+def render_insights(df: pd.DataFrame) -> None:
+    renda_media = weighted_mean(df, "renda_habitual_principal")
+    horas_medias = weighted_mean(df, "horas_habituais")
+    renda_hora = weighted_mean(df, "renda_por_hora")
+    previdencia = weighted_share(df, df["previdencia"].eq("Sim"))
+    ocupados = weighted_share(df, df["tem_ocupacao"])
+
+    st.subheader("Insights e Conclusões")
+    st.markdown(
+        """
+        A leitura do painel deve considerar que a PNAD é uma pesquisa amostral. Por isso, os pesos amostrais são essenciais
+        para transformar os registros em estimativas populacionais e para reduzir distorções na comparação entre grupos.
+        """
+    )
+
+    col1, col2, col3, col4, col5 = st.columns(5)
+    col1.metric("Renda média filtrada", format_currency_pt(renda_media) if renda_media is not None else "Sem dados")
+    col2.metric("Horas médias", f"{horas_medias:.1f} h" if horas_medias is not None else "Sem dados")
+    col3.metric("Renda por hora aproximada", f"{format_currency_pt(renda_hora)}/h" if renda_hora is not None else "Sem dados")
+    col4.metric("Com ocupação", f"{ocupados:.1f}%" if ocupados is not None else "Sem dados")
+    col5.metric("Contribui previdência", f"{previdencia:.1f}%" if previdencia is not None else "Sem dados")
+
+    st.markdown(
+        """
+        Principais leituras para a apresentação:
+
+        - A evolução trimestral permite observar mudanças no volume estimado da população pesquisada e no rendimento do trabalho.
+        - Os cruzamentos por sexo, raça e ocupação evidenciam desigualdades na composição demográfica e nos rendimentos médios.
+        - O gap de renda por sexo mostra a distância percentual entre o grupo com maior renda média e os demais.
+        - A renda por hora aproximada usa renda mensal dividida por horas semanais vezes 4,33, ajudando a comparar remuneração sem depender apenas da jornada total.
+        - A taxa de contribuição previdenciária por ocupação funciona como proxy de formalização e proteção social.
+        - As abas de trabalho e renda ajudam a relacionar posição na ocupação, contribuição previdenciária, jornada e remuneração.
+        - Como evolução futura, o projeto pode incluir comparação com outros estados, mapas, séries históricas mais longas e indicadores educacionais.
+        """
     )
 
 
@@ -561,43 +889,47 @@ def main() -> None:
         <style>
             .stApp {
                 background:
-                    radial-gradient(circle at top left, rgba(13, 148, 136, 0.16), transparent 32%),
-                    radial-gradient(circle at bottom right, rgba(8, 145, 178, 0.18), transparent 28%),
-                    linear-gradient(180deg, #f4fbfa 0%, #ecf7f5 100%);
-                color: #12312d;
+                    radial-gradient(circle at top left, rgba(56, 189, 248, 0.18), transparent 30%),
+                    radial-gradient(circle at bottom right, rgba(167, 139, 250, 0.14), transparent 28%),
+                    linear-gradient(180deg, #07131f 0%, #0b1724 100%);
+                color: #e5f4ff;
             }
             .block-container {
                 padding-top: 2rem;
                 padding-bottom: 2rem;
             }
             h1, h2, h3, p, label, span, div {
-                color: #12312d;
+                color: #e5f4ff;
             }
             section[data-testid="stSidebar"] {
-                background: linear-gradient(180deg, #eff9f7 0%, #e2f1ee 100%);
-                border-right: 1px solid rgba(15, 118, 110, 0.12);
+                background: linear-gradient(180deg, #0b1724 0%, #102235 100%);
+                border-right: 1px solid rgba(56, 189, 248, 0.18);
             }
             div[data-testid="stMetric"] {
-                background: rgba(255, 255, 255, 0.94);
-                border: 1px solid rgba(15, 118, 110, 0.12);
+                background: rgba(15, 31, 46, 0.92);
+                border: 1px solid rgba(56, 189, 248, 0.18);
                 border-radius: 18px;
                 padding: 0.8rem 1rem;
-                box-shadow: 0 10px 30px rgba(15, 23, 42, 0.06);
+                box-shadow: 0 12px 34px rgba(0, 0, 0, 0.28);
             }
             div[data-testid="stMetricLabel"] p,
             div[data-testid="stMetricValue"] div {
-                color: #12312d;
+                color: #e5f4ff;
             }
             div[data-testid="stTabs"] button {
-                color: #46615d;
+                color: #9fb7c9;
             }
             div[data-testid="stTabs"] button[aria-selected="true"] {
-                color: #0f766e;
+                color: #38bdf8;
             }
             div[data-testid="stDataFrame"] {
-                border: 1px solid rgba(15, 118, 110, 0.10);
+                border: 1px solid rgba(56, 189, 248, 0.18);
                 border-radius: 14px;
                 overflow: hidden;
+            }
+            div[data-testid="stAlert"] {
+                background: rgba(15, 31, 46, 0.92);
+                border: 1px solid rgba(56, 189, 248, 0.18);
             }
         </style>
         """,
@@ -606,27 +938,27 @@ def main() -> None:
 
     st.title("PyNAD Dashboard")
     st.caption(
-        "Painel analitico da PNAD Continua para o Para, com leitura do SQLite local e cruzamentos interativos."
+        "Painel analítico da PNAD Contínua para o Pará, com leitura do SQLite local e cruzamentos interativos."
     )
 
     if not DB_PATH.exists():
-        st.error("Banco de dados nao encontrado em db/pnad.db. Execute o pipeline antes de abrir o dashboard.")
+        st.error("Banco de dados não encontrado em db/pnad.db. Execute o pipeline antes de abrir o dashboard.")
         st.stop()
 
     df = load_data()
     filtered, count_mode = filter_dataframe(df)
 
     if filtered.empty:
-        st.warning("Os filtros atuais nao retornaram registros.")
+        st.warning("Os filtros atuais não retornaram registros.")
         st.stop()
 
     metric_cards(filtered)
 
     st.info(
-        "As contagens podem ser vistas como registros brutos ou estimativas ponderadas. Medias de renda e horas usam o peso amostral V1028 quando ha dados disponiveis."
+        "As contagens podem ser vistas como registros brutos ou estimativas ponderadas médias por trimestre. Médias de renda e horas usam o peso amostral V1028 quando há dados disponíveis."
     )
 
-    tabs = st.tabs(["Visao Geral", "Demografia", "Trabalho", "Renda", "Microdados"])
+    tabs = st.tabs(["Visão Geral", "Demografia", "Trabalho", "Renda", "Metodologia", "Microdados"])
 
     with tabs[0]:
         col1, col2 = st.columns([1.4, 1])
@@ -641,21 +973,29 @@ def main() -> None:
         col1, col2 = st.columns([1.1, 1.1])
         col1.plotly_chart(build_sex_race_heatmap(filtered, count_mode), use_container_width=True)
         col2.plotly_chart(build_age_sex_chart(filtered, count_mode), use_container_width=True)
+        st.plotly_chart(build_education_distribution_chart(filtered, count_mode), use_container_width=True)
 
     with tabs[2]:
         col1, col2 = st.columns([1.15, 1.05])
         col1.plotly_chart(build_occupation_distribution_chart(filtered, count_mode), use_container_width=True)
         col2.plotly_chart(build_previdencia_occupation_chart(filtered, count_mode), use_container_width=True)
+        st.plotly_chart(build_previdencia_rate_by_occupation_chart(filtered), use_container_width=True)
         st.plotly_chart(build_hours_trend_chart(filtered), use_container_width=True)
 
     with tabs[3]:
         col1, col2 = st.columns([1, 1])
-        col1.plotly_chart(build_income_by_group_chart(filtered, "sexo", "Renda media por sexo"), use_container_width=True)
-        col2.plotly_chart(build_income_by_group_chart(filtered, "ocupacao", "Renda media por posicao na ocupacao"), use_container_width=True)
+        col1.plotly_chart(build_income_gap_chart(filtered), use_container_width=True)
+        col2.plotly_chart(build_income_by_group_chart(filtered, "ocupacao", "Renda média por posição na ocupação"), use_container_width=True)
+        st.plotly_chart(build_income_by_group_chart(filtered, "escolaridade", "Renda média por grau de escolaridade"), use_container_width=True)
+        st.plotly_chart(build_hourly_income_by_group_chart(filtered, "ocupacao", "Renda por hora por posição na ocupação"), use_container_width=True)
         st.plotly_chart(build_income_by_sex_period_chart(filtered), use_container_width=True)
         st.dataframe(build_income_gap_table(filtered), use_container_width=True, hide_index=True)
 
     with tabs[4]:
+        render_methodology(df)
+        render_insights(filtered)
+
+    with tabs[5]:
         render_microdata_table(filtered)
 
 
