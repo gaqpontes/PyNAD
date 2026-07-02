@@ -202,7 +202,7 @@ def query_faixa_etaria_sexo_media_trimestral(
 
 
 def query_renda_media_geral(conn: Optional[sqlite3.Connection] = None) -> Optional[float]:
-    """Retorna renda média ponderada geral."""
+    """Retorna renda habitual média ponderada do trabalho principal."""
     close_conn = False
     if conn is None:
         conn = get_connection()
@@ -225,7 +225,7 @@ def query_renda_media_geral(conn: Optional[sqlite3.Connection] = None) -> Option
 
 
 def query_horas_medias_gerais(conn: Optional[sqlite3.Connection] = None) -> Optional[float]:
-    """Retorna horas habituais médias ponderadas."""
+    """Retorna horas habituais médias ponderadas no trabalho principal."""
     close_conn = False
     if conn is None:
         conn = get_connection()
@@ -248,7 +248,7 @@ def query_horas_medias_gerais(conn: Optional[sqlite3.Connection] = None) -> Opti
 
 
 def query_renda_por_hora_geral(conn: Optional[sqlite3.Connection] = None) -> Optional[float]:
-    """Retorna renda por hora aproximada (renda mensal / (horas semanais * 4.33))."""
+    """Retorna renda por hora aproximada do trabalho principal."""
     close_conn = False
     if conn is None:
         conn = get_connection()
@@ -274,7 +274,7 @@ def query_renda_por_hora_geral(conn: Optional[sqlite3.Connection] = None) -> Opt
 
 
 def query_previdencia_percentual(conn: Optional[sqlite3.Connection] = None) -> Optional[float]:
-    """Retorna percentual de pessoas que contribuem para previdência."""
+    """Retorna percentual que contribui para previdência entre casos deriváveis."""
     close_conn = False
     if conn is None:
         conn = get_connection()
@@ -283,11 +283,23 @@ def query_previdencia_percentual(conn: Optional[sqlite3.Connection] = None) -> O
     try:
         cursor = conn.cursor()
         cursor.execute("""
+            WITH base AS (
+                SELECT
+                    V1028,
+                    CASE
+                        WHEN V4029 = '1' OR V4028 = '1' OR V4032 = '1' THEN 'Sim'
+                        WHEN V4029 = '2' OR V4028 = '2' OR V4032 = '2' THEN 'Não'
+                        ELSE 'Sem informação'
+                    END AS previdencia
+                FROM pnad
+                WHERE V1028 IS NOT NULL 
+                  AND CAST(V1028 AS REAL) > 0
+            )
             SELECT 
-                SUM(CASE WHEN V4032 = '1' THEN CAST(V1028 AS REAL) ELSE 0 END) 
-                / SUM(CAST(V1028 AS REAL)) * 100
-            FROM pnad
-            WHERE V1028 IS NOT NULL AND CAST(V1028 AS REAL) > 0
+                SUM(CASE WHEN previdencia = 'Sim' THEN CAST(V1028 AS REAL) ELSE 0 END) 
+                / SUM(CASE WHEN previdencia IN ('Sim', 'Não') THEN CAST(V1028 AS REAL) ELSE 0 END) * 100
+            FROM base
+            WHERE previdencia IN ('Sim', 'Não')
         """)
         result = cursor.fetchone()[0]
         return result
@@ -297,7 +309,7 @@ def query_previdencia_percentual(conn: Optional[sqlite3.Connection] = None) -> O
 
 
 def query_com_ocupacao_percentual(conn: Optional[sqlite3.Connection] = None) -> Optional[float]:
-    """Retorna percentual de pessoas com ocupação."""
+    """Retorna percentual com posição na ocupação do trabalho principal informada."""
     close_conn = False
     if conn is None:
         conn = get_connection()
@@ -320,7 +332,7 @@ def query_com_ocupacao_percentual(conn: Optional[sqlite3.Connection] = None) -> 
 
 
 def query_renda_por_raça(conn: Optional[sqlite3.Connection] = None) -> list[dict]:
-    """Retorna renda média ponderada por raça/cor."""
+    """Retorna renda habitual média ponderada do trabalho principal por raça/cor."""
     close_conn = False
     if conn is None:
         conn = get_connection()
@@ -363,7 +375,7 @@ def query_renda_por_raça(conn: Optional[sqlite3.Connection] = None) -> list[dic
 
 
 def query_renda_por_sexo(conn: Optional[sqlite3.Connection] = None) -> list[dict]:
-    """Retorna renda média ponderada por sexo."""
+    """Retorna renda habitual média ponderada do trabalho principal por sexo."""
     close_conn = False
     if conn is None:
         conn = get_connection()
@@ -399,7 +411,7 @@ def query_renda_por_sexo(conn: Optional[sqlite3.Connection] = None) -> list[dict
 
 
 def query_taxa_previdencia_por_ocupacao(conn: Optional[sqlite3.Connection] = None) -> list[dict]:
-    """Retorna taxa de contribuição previdenciária por ocupação."""
+    """Retorna taxa de contribuição previdenciária por ocupação entre casos deriváveis."""
     close_conn = False
     if conn is None:
         conn = get_connection()
@@ -408,22 +420,34 @@ def query_taxa_previdencia_por_ocupacao(conn: Optional[sqlite3.Connection] = Non
     try:
         cursor = conn.cursor()
         cursor.execute("""
+            WITH base AS (
+                SELECT
+                    V4012,
+                    V1028,
+                    CASE
+                        WHEN V4029 = '1' OR V4028 = '1' OR V4032 = '1' THEN 'Sim'
+                        WHEN V4029 = '2' OR V4028 = '2' OR V4032 = '2' THEN 'Não'
+                        ELSE 'Sem informação'
+                    END AS previdencia
+                FROM pnad
+                WHERE V4012 IS NOT NULL 
+                  AND TRIM(V4012) != ''
+                  AND V1028 IS NOT NULL 
+                  AND CAST(V1028 AS REAL) > 0
+            )
             SELECT 
                 V4012 as ocupacao,
-                SUM(CASE WHEN V4032 = '1' THEN CAST(V1028 AS REAL) ELSE 0 END) 
-                / SUM(CAST(V1028 AS REAL)) * 100 as taxa
-            FROM pnad
-            WHERE V4012 IS NOT NULL 
-              AND TRIM(V4012) != ''
-              AND V1028 IS NOT NULL 
-              AND CAST(V1028 AS REAL) > 0
+                SUM(CASE WHEN previdencia = 'Sim' THEN CAST(V1028 AS REAL) ELSE 0 END) 
+                / SUM(CASE WHEN previdencia IN ('Sim', 'Não') THEN CAST(V1028 AS REAL) ELSE 0 END) * 100 as taxa
+            FROM base
+            WHERE previdencia IN ('Sim', 'Não')
             GROUP BY V4012
             ORDER BY taxa DESC
         """)
         
         ocupacao_map = {
             "1": "Trabalhador doméstico",
-            "2": "Militar das Forças Armadas",
+            "2": "Militar das Forças Armadas, polícia militar ou corpo de bombeiros militar",
             "3": "Empregado do setor privado",
             "4": "Empregado do setor público",
             "5": "Empregador",

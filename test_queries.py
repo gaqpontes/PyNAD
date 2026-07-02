@@ -244,11 +244,11 @@ def test_metricas_cards():
     previdencia = query_previdencia_percentual()
     com_ocupacao = query_com_ocupacao_percentual()
     
-    print(f"\nRenda habitual média: {format_currency(renda_media)}")
-    print(f"Horas habituais médias: {horas_medias:.1f} h" if horas_medias else "Horas: N/A")
-    print(f"Renda por hora aproximada: {format_currency(renda_por_hora)}/h")
-    print(f"Contribui previdência: {format_percent(previdencia)}")
-    print(f"Com ocupação: {format_percent(com_ocupacao)}")
+    print(f"\nRenda habitual média do trabalho principal: {format_currency(renda_media)}")
+    print(f"Horas habituais médias no trabalho principal: {horas_medias:.1f} h" if horas_medias else "Horas: N/A")
+    print(f"Renda por hora aproximada do trabalho principal: {format_currency(renda_por_hora)}/h")
+    print(f"Contribui previdência no trabalho principal (informação derivável): {format_percent(previdencia)}")
+    print(f"Com posição ocupacional informada: {format_percent(com_ocupacao)}")
     
     # Validações
     validacoes = []
@@ -274,18 +274,18 @@ def test_metricas_cards():
         print(f"✗ Renda por hora incorreta: {renda_por_hora}")
         validacoes.append(False)
     
-    if previdencia and abs(previdencia - 4.8) < 0.5:
-        print("✓ Percentual previdência correto")
+    if previdencia and abs(previdencia - 44.14) < 0.5:
+        print("✓ Percentual de previdência no trabalho principal com informação derivável correto")
         validacoes.append(True)
     else:
-        print(f"✗ Percentual previdência incorreto: {previdencia}")
+        print(f"✗ Percentual de previdência no trabalho principal com informação derivável incorreto: {previdencia}")
         validacoes.append(False)
     
     if com_ocupacao and abs(com_ocupacao - 43.2) < 0.5:
-        print("✓ Percentual com ocupação correto")
+        print("✓ Percentual com posição ocupacional informada correto")
         validacoes.append(True)
     else:
-        print(f"✗ Percentual com ocupação incorreto: {com_ocupacao}")
+        print(f"✗ Percentual com posição ocupacional informada incorreto: {com_ocupacao}")
         validacoes.append(False)
     
     if all(validacoes):
@@ -297,14 +297,14 @@ def test_metricas_cards():
 
 
 def test_renda_por_raca():
-    """Testa renda média por raça/cor."""
+    """Testa renda média do trabalho principal por raça/cor."""
     print("\n" + "="*60)
-    print("TESTE: Renda Média por Raça/Cor")
+    print("TESTE: Renda Média do Trabalho Principal por Raça/Cor")
     print("="*60)
     
     rendas = query_renda_por_raça()
     
-    print("\nRenda média por raça/cor:")
+    print("\nRenda média do trabalho principal por raça/cor:")
     
     for item in rendas:
         print(f"  {item['raca']}: {format_currency(item['renda_media'])}")
@@ -320,14 +320,14 @@ def test_renda_por_raca():
 
 
 def test_renda_por_sexo():
-    """Testa renda média por sexo."""
+    """Testa renda média do trabalho principal por sexo."""
     print("\n" + "="*60)
-    print("TESTE: Renda Média por Sexo")
+    print("TESTE: Renda Média do Trabalho Principal por Sexo")
     print("="*60)
     
     rendas = query_renda_por_sexo()
     
-    print("\nRenda média por sexo:")
+    print("\nRenda média do trabalho principal por sexo:")
     
     for item in rendas:
         print(f"  {item['sexo']}: {format_currency(item['renda_media'])}")
@@ -347,20 +347,24 @@ def test_renda_por_sexo():
 
 
 def test_taxa_previdencia_por_ocupacao():
-    """Testa taxa de contribuição previdenciária por ocupação."""
+    """Testa taxa de contribuição previdenciária no trabalho principal por ocupação."""
     print("\n" + "="*60)
-    print("TESTE: Taxa de Previdência por Ocupação")
+    print("TESTE: Taxa de Previdência no Trabalho Principal por Ocupação")
     print("="*60)
     
     taxas = query_taxa_previdencia_por_ocupacao()
     
-    print("\nTaxa de contribuição previdenciária por ocupação:")
+    print("\nTaxa de contribuição previdenciária no trabalho principal por ocupação (informação derivável):")
     
     for item in taxas:
         print(f"  {item['ocupacao']}: {format_percent(item['taxa'])}")
     
-    # Validação: empregador e setor público devem ter taxas mais altas
-    if len(taxas) >= 2:
+    ocupacoes = {item["ocupacao"] for item in taxas}
+    if (
+        len(taxas) == 5
+        and "Militar das Forças Armadas, polícia militar ou corpo de bombeiros militar" not in ocupacoes
+        and "Trabalhador familiar não remunerado" not in ocupacoes
+    ):
         print("✓ PASSOU")
         return True
     else:
@@ -382,9 +386,9 @@ def executar_todos_testes():
         ("Distribuição por Sexo", test_distribuicao_sexo),
         ("Faixa Etária por Sexo", test_faixa_etaria_sexo),
         ("Métricas dos Cards", test_metricas_cards),
-        ("Renda por Raça", test_renda_por_raca),
-        ("Renda por Sexo", test_renda_por_sexo),
-        ("Taxa Previdência por Ocupação", test_taxa_previdencia_por_ocupacao),
+        ("Renda do Trabalho Principal por Raça", test_renda_por_raca),
+        ("Renda do Trabalho Principal por Sexo", test_renda_por_sexo),
+        ("Taxa Previdência no Trabalho Principal por Ocupação", test_taxa_previdencia_por_ocupacao),
     ]
     
     resultados = []
