@@ -895,20 +895,6 @@ def render_insights(df: pd.DataFrame) -> None:
     col4.metric("Com posição ocupacional informada", f"{ocupados:.1f}%" if ocupados is not None else "Sem dados")
     col5.metric("Contribui previdência no trabalho principal (informação derivável)", f"{previdencia:.1f}%" if previdencia is not None else "Sem dados")
 
-    st.markdown(
-        """
-        Principais leituras para a apresentação:
-
-        - A evolução trimestral permite observar mudanças no volume estimado da população pesquisada e no rendimento do trabalho principal.
-        - Os cruzamentos por sexo, raça e ocupação evidenciam desigualdades na composição demográfica e nos rendimentos médios.
-        - O gap de renda por sexo mostra a distância percentual entre o grupo com maior renda média e os demais.
-        - A renda por hora aproximada usa renda mensal do trabalho principal dividida por horas semanais no trabalho principal vezes 4,33.
-        - A taxa de contribuição previdenciária por ocupação combina contribuição declarada, carteira assinada e servidor estatutário.
-        - As abas de trabalho e renda ajudam a relacionar posição na ocupação, contribuição previdenciária, jornada e remuneração do trabalho principal.
-        - Como evolução futura, o projeto pode incluir comparação com outros estados, mapas, séries históricas mais longas e indicadores educacionais.
-        """
-    )
-
 
 def main() -> None:
     st.set_page_config(
